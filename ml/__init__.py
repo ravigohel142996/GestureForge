@@ -1,6 +1,9 @@
 """
 ML Package for GestureForge
 
-This package will contain modules for dataset building, model training, and inference.
-(To be implemented in future steps)
+This package contains modules for dataset building, model training, and inference.
 """
+
+from .dataset_builder import GestureDatasetBuilder
+
+__all__ = ['GestureDatasetBuilder']
