@@ -35,6 +35,7 @@ ENV/
 # Data
 data/raw_landmarks/*.csv
 data/raw_landmarks/*.json
+data/raw_landmarks/*.npz
 data/trained_models/*.pkl
 data/trained_models/*.h5
 data/trained_models/*.pb
