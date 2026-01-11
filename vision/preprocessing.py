@@ -55,8 +55,8 @@ class LandmarkNormalizer:
         centered = coords - wrist
         
         # Calculate maximum distance from wrist for scaling
-        distances = np.linalg.norm(centered, axis=1)
-        max_distance = np.max(distances)
+        # Note: We compute norms for all landmarks to find the max distance
+        max_distance = np.max(np.linalg.norm(centered, axis=1))
         
         # Scale by max distance (scale invariance)
         if max_distance > 0:

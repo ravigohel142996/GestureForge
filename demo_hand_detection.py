@@ -12,8 +12,7 @@ Press 'q' to quit the demo.
 
 import cv2
 import sys
-from vision.hand_detector import HandDetector, WebcamStream
-from vision.preprocessing import LandmarkNormalizer, print_landmark_summary
+from vision import HandDetector, WebcamStream, LandmarkNormalizer, print_landmark_summary
 
 
 def main():

@@ -95,6 +95,8 @@ class HandDetector:
                         'x': landmark.x,  # Normalized [0, 1]
                         'y': landmark.y,  # Normalized [0, 1]
                         'z': landmark.z,  # Depth relative to wrist
+                        # Visibility may not be available in all MediaPipe versions
+                        # For hands, it's typically always 1.0 when detected
                         'visibility': landmark.visibility if hasattr(landmark, 'visibility') else 1.0
                     })
                 
