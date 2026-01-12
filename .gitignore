@@ -39,6 +39,8 @@ data/raw_landmarks/*.npz
 data/trained_models/*.pkl
 data/trained_models/*.h5
 data/trained_models/*.pb
+data/trained_models/*.png
+data/trained_models/*.jpg
 
 # Logs
 *.log
