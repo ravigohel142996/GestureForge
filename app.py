@@ -186,6 +186,7 @@ def init_session_state():
     """Initialize Streamlit session state variables."""
     if 'initialized' not in st.session_state:
         st.session_state.initialized = False
+        st.session_state.running = False
         st.session_state.webcam = None
         st.session_state.hand_detector = None
         st.session_state.normalizer = None
@@ -518,19 +519,33 @@ def main():
     
     # Main processing loop
     st.markdown("---")
-    st.markdown("**Press 'Q' in the camera window to stop (if visible)**")
     
-    # Use a stop button for Streamlit
-    stop_button = st.button("⏹️ Stop System", type="secondary")
+    # Control buttons
+    col_start, col_stop = st.columns(2)
+    with col_start:
+        if st.button("▶️ Start System", disabled=st.session_state.running):
+            st.session_state.running = True
+    with col_stop:
+        if st.button("⏹️ Stop System", disabled=not st.session_state.running):
+            st.session_state.running = False
+            # Cleanup
+            if st.session_state.webcam:
+                st.session_state.webcam.release()
+            if st.session_state.hand_detector:
+                st.session_state.hand_detector.release()
+            cv2.destroyAllWindows()
+            st.success("✅ System stopped successfully")
+            st.stop()
     
-    # Real-time loop
-    try:
-        while not stop_button:
+    # Process single frame if running
+    if st.session_state.running:
+        try:
             # Read frame
             success, frame = st.session_state.webcam.read_frame()
             if not success:
                 st.error("Failed to read from webcam")
-                break
+                st.session_state.running = False
+                st.stop()
             
             # Process frame
             result = process_frame(frame)
@@ -560,25 +575,28 @@ def main():
             with history_placeholder.container():
                 render_action_history()
             
-            # Small delay to prevent overwhelming the UI
+            # Auto-rerun for continuous processing
             time.sleep(0.033)  # ~30 fps
-            
-            # Break if stop button was pressed (check again)
-            if stop_button:
-                break
-    
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        st.error(f"Error during processing: {str(e)}")
-    finally:
-        # Cleanup
-        if st.session_state.webcam:
-            st.session_state.webcam.release()
-        if st.session_state.hand_detector:
-            st.session_state.hand_detector.release()
-        cv2.destroyAllWindows()
-        st.success("✅ System stopped successfully")
+            st.rerun()
+        
+        except Exception as e:
+            st.error(f"Error during processing: {str(e)}")
+            st.session_state.running = False
+    else:
+        st.info("Press 'Start System' to begin gesture recognition")
+        st.markdown("""
+        **Instructions:**
+        1. Click 'Start System' to activate webcam
+        2. Show gestures to control system
+        3. Click 'Stop System' to end session
+        
+        **Gestures:**
+        - **Open Palm**: Activate/unlock system
+        - **Pinch**: Increase threshold
+        - **Swipe**: Scroll up
+        - **Fist**: Lock system
+        - **Rotate**: Rotate view
+        """)
 
 if __name__ == "__main__":
     main()
