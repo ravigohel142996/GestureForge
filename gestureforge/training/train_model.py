@@ -11,13 +11,14 @@ import sys
 import os
 
 # Add parent directory to path
-parent_dir = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(parent_dir))
+parent_dir = Path(__file__).parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
 
-from gestureforge.ml import GestureClassifier
-from gestureforge.training.synthetic_generator import SyntheticGestureGenerator
-from gestureforge.utils.logger import get_logger
-from gestureforge.utils.config import TRAIN_TEST_SPLIT, MODEL_PATH
+from ml.gesture_classifier import GestureClassifier
+from training.synthetic_generator import SyntheticGestureGenerator
+from utils.logger import get_logger
+from utils.config import TRAIN_TEST_SPLIT, MODEL_PATH
 
 logger = get_logger(__name__)
 

@@ -14,14 +14,20 @@ from pathlib import Path
 import tempfile
 from typing import Optional
 import sys
+import os
 
-# Add gestureforge to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Setup path for imports
+current_dir = Path(__file__).parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
 
-from gestureforge.ml import FeatureExtractor, GestureClassifier, GestureExplainer
-from gestureforge.training import train_model
-from gestureforge.utils.logger import get_logger
-from gestureforge.utils.config import (
+# Import using absolute module paths
+from ml.feature_extractor import FeatureExtractor
+from ml.gesture_classifier import GestureClassifier
+from ml.explainability import GestureExplainer
+from training.train_model import train_model
+from utils.logger import get_logger
+from utils.config import (
     MODEL_PATH, GESTURE_CLASSES, CONFIDENCE_THRESHOLDS,
     SUPPORTED_IMAGE_FORMATS, SUPPORTED_VIDEO_FORMATS
 )

@@ -7,9 +7,16 @@ Generates synthetic hand gesture data for training when real data is unavailable
 import numpy as np
 from typing import List, Tuple
 import random
+import sys
+from pathlib import Path
 
-from ..utils.logger import get_logger
-from ..utils.config import GESTURE_CLASSES, N_LANDMARKS, SYNTHETIC_SAMPLES_PER_CLASS
+# Add parent to path if needed
+parent_dir = Path(__file__).parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from utils.logger import get_logger
+from utils.config import GESTURE_CLASSES, N_LANDMARKS, SYNTHETIC_SAMPLES_PER_CLASS
 
 logger = get_logger(__name__)
 

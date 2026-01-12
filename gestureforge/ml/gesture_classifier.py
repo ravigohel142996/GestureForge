@@ -10,9 +10,15 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from typing import Optional, Dict, Tuple, List
 from pathlib import Path
+import sys
 
-from ..utils.logger import get_logger
-from ..utils.config import ML_CONFIG, GESTURE_CLASSES, MODEL_PATH
+# Add parent to path if needed
+parent_dir = Path(__file__).parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from utils.logger import get_logger
+from utils.config import ML_CONFIG, GESTURE_CLASSES, MODEL_PATH
 
 logger = get_logger(__name__)
 

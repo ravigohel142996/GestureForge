@@ -6,8 +6,15 @@ Provides human-readable explanations for gesture predictions.
 
 import numpy as np
 from typing import Dict, List, Tuple
+import sys
+from pathlib import Path
 
-from ..utils.logger import get_logger
+# Add parent to path if needed
+parent_dir = Path(__file__).parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
+from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
