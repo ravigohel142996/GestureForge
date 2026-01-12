@@ -90,8 +90,11 @@ class GestureClassifier:
             landmarks = data['landmarks']
             labels = data['labels']
         elif format == 'csv':
-            from ml.dataset_builder import GestureDatasetBuilder
-            landmarks, labels, _, _ = GestureDatasetBuilder.load_from_csv(filepath)
+            try:
+                from ml.dataset_builder import GestureDatasetBuilder
+                landmarks, labels, _, _ = GestureDatasetBuilder.load_from_csv(filepath)
+            except ImportError as e:
+                raise ImportError(f"Failed to import GestureDatasetBuilder for CSV loading: {e}")
         else:
             raise ValueError(f"Unsupported format: {format}. Use 'npz' or 'csv'.")
         
@@ -345,8 +348,9 @@ class GestureClassifier:
         if not self.is_trained:
             raise RuntimeError("Cannot save untrained model. Call train() first.")
         
-        # Ensure .pkl extension
+        # Validate and ensure .pkl extension
         if not filepath.endswith('.pkl'):
+            print(f"⚠ Warning: Appending .pkl extension to filepath")
             filepath += '.pkl'
         
         # Create directory if needed

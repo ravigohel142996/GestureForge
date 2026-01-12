@@ -122,12 +122,20 @@ def main():
     """Main training function."""
     args = parse_args()
     
+    # Training workflow steps
+    TOTAL_STEPS = 5
+    STEP_LOAD_DATA = 1
+    STEP_INIT_CLASSIFIER = 2
+    STEP_TRAIN = 3
+    STEP_EVALUATE = 4
+    STEP_VISUALIZE = 5
+    
     print("="*70)
     print("GestureForge - Gesture Classifier Training")
     print("="*70)
     
     # Load or generate dataset
-    print("\n[1/5] Loading dataset...")
+    print(f"\n[{STEP_LOAD_DATA}/{TOTAL_STEPS}] Loading dataset...")
     print("-"*70)
     
     if args.synthetic:
@@ -176,7 +184,7 @@ def main():
         print(f"  - {gesture}: {count} samples ({count/len(y)*100:.1f}%)")
     
     # Initialize classifier
-    print("\n[2/5] Initializing classifier...")
+    print(f"\n[{STEP_INIT_CLASSIFIER}/{TOTAL_STEPS}] Initializing classifier...")
     print("-"*70)
     
     classifier = GestureClassifier(
@@ -189,7 +197,7 @@ def main():
     print(f"✓ RandomForest classifier initialized")
     
     # Train model
-    print("\n[3/5] Training model...")
+    print(f"\n[{STEP_TRAIN}/{TOTAL_STEPS}] Training model...")
     print("-"*70)
     
     train_results = classifier.train(
@@ -199,7 +207,7 @@ def main():
     )
     
     # Evaluate model
-    print("\n[4/5] Evaluating model...")
+    print(f"\n[{STEP_EVALUATE}/{TOTAL_STEPS}] Evaluating model...")
     print("-"*70)
     
     eval_results = classifier.evaluate(
@@ -210,7 +218,7 @@ def main():
     
     # Plot confusion matrix
     if not args.no_plot:
-        print("\n[5/5] Generating visualizations...")
+        print(f"\n[{STEP_VISUALIZE}/{TOTAL_STEPS}] Generating visualizations...")
         print("-"*70)
         
         try:
