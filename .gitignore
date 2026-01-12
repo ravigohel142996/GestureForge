@@ -42,6 +42,12 @@ data/trained_models/*.pb
 data/trained_models/*.png
 data/trained_models/*.jpg
 
+# GestureForge v2 data
+gestureforge/data/trained_models/*.pkl
+gestureforge/data/samples/*.png
+gestureforge/data/samples/*.jpg
+gestureforge/data/samples/*.mp4
+
 # Logs
 *.log
 

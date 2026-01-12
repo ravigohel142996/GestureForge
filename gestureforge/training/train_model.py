@@ -8,9 +8,11 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from pathlib import Path
 import sys
+import os
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+parent_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(parent_dir))
 
 from gestureforge.ml import GestureClassifier
 from gestureforge.training.synthetic_generator import SyntheticGestureGenerator
