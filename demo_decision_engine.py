@@ -54,8 +54,9 @@ def demo_basic_workflow():
     print("Training classifier on synthetic data...")
     generator = SyntheticGestureGenerator(random_seed=42)
     X_train, y_train = generator.generate_dataset(samples_per_gesture=100, noise_level=0.05)
-    classifier.train(X_train, y_train, validation_split=0.2, verbose=False)
-    print(f"✓ Classifier trained (accuracy: 100%)")
+    results = classifier.train(X_train, y_train, validation_split=0.2, verbose=False)
+    val_accuracy = results['val_accuracy']
+    print(f"✓ Classifier trained (validation accuracy: {val_accuracy:.2%})")
     
     # Simulate a sequence of gesture recognitions
     print("\n" + "-"*70)

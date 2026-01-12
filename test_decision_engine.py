@@ -266,7 +266,8 @@ def test_explainability_logger():
         print("\n  Logging 10 test decisions...")
         executed_count = 0
         for i in range(10):
-            executed = i % 3 != 0  # Reject every 3rd decision (0, 3, 6, 9)
+            # Reject every 3rd decision (indices 0, 3, 6, 9 are rejected)
+            executed = i % 3 != 0
             if executed:
                 executed_count += 1
             logger.log_decision(

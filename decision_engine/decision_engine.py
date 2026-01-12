@@ -196,10 +196,11 @@ class DecisionEngine:
         # State: ACTIVE - process all gestures
         if self.state == SystemState.ACTIVE:
             if gesture == 'open_palm':
-                # In ACTIVE state, open_palm maintains activity
+                # In ACTIVE state, open_palm maintains activity (no state change)
+                # Return NO_ACTION since system is already active
                 reason = (f"Open palm gesture detected with confidence {confidence:.2f} "
-                         f"while system was ACTIVE. System remains active.")
-                return SystemAction.NO_ACTION, reason  # No action needed, already active
+                         f"while system was ACTIVE. System remains active (no action needed).")
+                return SystemAction.NO_ACTION, reason
             
             elif gesture == 'pinch':
                 reason = (f"Pinch gesture detected with confidence {confidence:.2f} "
