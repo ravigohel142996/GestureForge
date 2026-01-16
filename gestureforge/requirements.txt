@@ -12,4 +12,4 @@ streamlit==1.28.2
 plotly==5.18.0  # For interactive charts
 
 # Utilities
-pillow==10.1.0
+pillow==10.3.0  # Patched version - fixes buffer overflow vulnerability (CVE)
