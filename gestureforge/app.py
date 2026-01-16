@@ -372,7 +372,7 @@ def render_top_predictions(all_probs: dict, top_n: int = 3):
 
 
 def render_decision_explanation(predicted_class: str, confidence: float, 
-                                feature_importance: List[Tuple], explanation: dict):
+                                feature_importance: dict, explanation: dict):
     """Render plain English decision explanation."""
     st.markdown("### 🧠 Decision Explanation")
     
@@ -381,6 +381,9 @@ def render_decision_explanation(predicted_class: str, confidence: float,
                        "moderate" if confidence >= 0.6 else "low"
     
     gesture_name = predicted_class.replace('_', ' ')
+    
+    # Get top 3 features
+    top_features = list(feature_importance.items())[:3]
     
     explanation_text = f"""
     **Why did the model choose '{gesture_name}'?**
@@ -394,9 +397,9 @@ def render_decision_explanation(predicted_class: str, confidence: float,
     
     1. **Finger Positioning**: The model examined the spatial arrangement of all fingers. 
        The most important landmarks for this prediction were:
-       - {feature_importance[0][0]}: {feature_importance[0][1]:.3f} importance
-       - {feature_importance[1][0]}: {feature_importance[1][1]:.3f} importance
-       - {feature_importance[2][0]}: {feature_importance[2][1]:.3f} importance
+       - {top_features[0][0]}: {top_features[0][1]:.3f} importance
+       - {top_features[1][0]}: {top_features[1][1]:.3f} importance
+       - {top_features[2][0]}: {top_features[2][1]:.3f} importance
     
     2. **Confidence Assessment**: Out of {explanation.get('model_info', {}).get('n_trees', 100)} decision trees in the forest, 
        approximately {int(confidence * explanation.get('model_info', {}).get('n_trees', 100))} trees voted for '{gesture_name}', 
