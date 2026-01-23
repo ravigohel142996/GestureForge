@@ -61,8 +61,11 @@ class TestFlickerFix(unittest.TestCase):
             content = f.read()
         
         # Should have controlled rerun after bounded loop
-        self.assertIn('if st.session_state.running:\n                st.rerun()', content,
-                     "Missing controlled rerun after bounded loop")
+        # Check for the pattern (flexible to formatting changes)
+        import re
+        pattern = r'if\s+st\.session_state\.running:\s+st\.rerun\(\)'
+        if not re.search(pattern, content):
+            self.fail("Missing controlled rerun pattern 'if st.session_state.running: st.rerun()'")
     
     def test_start_stop_buttons_use_rerun(self):
         """Verify start/stop buttons explicitly call rerun."""

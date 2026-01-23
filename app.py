@@ -555,7 +555,7 @@ def main():
                 video_placeholder.image(
                     result['frame_with_landmarks'],
                     channels="BGR",
-                    use_column_width=True
+                    use_container_width=True
                 )
                 
                 # Update system intelligence display
