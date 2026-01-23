@@ -1,25 +1,24 @@
 """
-GestureForge - Real-Time Gesture Control UI
+GestureForge - Premium Gesture Recognition Platform
 
-Dark cinematic interface for gesture recognition and control.
-Streams webcam video, detects hand landmarks, predicts gestures,
-and executes system actions with full explainability.
+Production-grade gesture control system with enterprise-quality UI.
+Real-time hand tracking, ML-powered gesture recognition, and intelligent action execution.
 
 Features:
-- Dark cinematic theme
+- Premium dark interface with subtle animations
 - Real-time webcam streaming with OpenCV
 - Hand landmark detection and overlay
 - ML gesture prediction with confidence
-- Decision engine integration
-- Live system state display
-- Human-readable explanations
+- Intelligent action execution system
+- Model health monitoring
+- Action timeline tracking
 """
 
 import streamlit as st
 import cv2
 import numpy as np
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import os
 
 # Import GestureForge modules
@@ -29,144 +28,230 @@ from ml import GestureClassifier
 from decision_engine import DecisionEngine, ExplainabilityLogger, SystemAction, SystemState
 
 # ============================================================================
+# CONFIGURATION CONSTANTS
+# ============================================================================
+
+# Confidence threshold for action execution
+CONF_THRESHOLD = 0.65
+
+# Maximum frames to process per cycle (prevents browser hang)
+MAX_FRAMES_PER_CYCLE = 100
+
+# Landmark feature dimension (21 landmarks × 3 coordinates)
+LANDMARK_FEATURE_DIM = 63
+
+# Gesture to action mapping
+# Available gestures from trained model: open_palm, fist, pinch, swipe, rotate
+GESTURE_ACTION_MAP = {
+    'open_palm': 'Activate System',
+    'fist': 'Lock / Pause',
+    'pinch': 'Confirm / Execute',
+    'swipe': 'Next Mode',
+    'rotate': 'Cancel',
+}
+
+# ============================================================================
 # PAGE CONFIGURATION AND STYLING
 # ============================================================================
 
 st.set_page_config(
-    page_title="GestureForge - Real-Time Gesture Control",
-    page_icon="🖐️",
+    page_title="GestureForge - Gesture Recognition Platform",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Dark cinematic theme CSS
-DARK_THEME_CSS = """
+# Premium UI CSS with subtle animations
+PREMIUM_CSS = """
 <style>
-    /* Main background - deep dark */
+    /* Main background - premium dark */
     .stApp {
         background-color: #0a0a0a;
-        color: #e0e0e0;
+        color: #e8e8e8;
     }
     
-    /* Headers - clean and prominent */
-    h1, h2, h3 {
+    /* Clean typography */
+    h1, h2, h3, h4 {
         color: #ffffff;
-        font-weight: 700;
-        letter-spacing: 0.5px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
     }
     
     h1 {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #1e88e5;
-        padding-bottom: 0.5rem;
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
     }
     
-    /* Metric containers - elevated cards */
-    [data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 700;
+    h3 {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #b0b0b0;
+        margin-top: 0.5rem;
     }
     
-    [data-testid="stMetric"] {
-        background-color: #1a1a1a;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 3px solid #1e88e5;
-    }
-    
-    /* Status indicators */
-    .status-idle {
-        background: linear-gradient(135deg, #424242 0%, #212121 100%);
+    /* Premium cards */
+    .premium-card {
+        background: linear-gradient(135deg, #1a1a1a 0%, #141414 100%);
         padding: 1.5rem;
-        border-radius: 10px;
-        border: 1px solid #616161;
+        border-radius: 12px;
+        border: 1px solid #2a2a2a;
         margin: 1rem 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
     }
     
-    .status-active {
-        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 1px solid #1976d2;
-        margin: 1rem 0;
-        box-shadow: 0 0 20px rgba(30, 136, 229, 0.3);
+    /* Action trigger glow animation */
+    .action-glow {
+        animation: glow-pulse 600ms ease-out;
+        box-shadow: 0 0 30px rgba(30, 136, 229, 0.6) !important;
     }
     
-    .status-locked {
-        background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 1px solid #d32f2f;
-        margin: 1rem 0;
-        box-shadow: 0 0 20px rgba(211, 47, 47, 0.3);
+    @keyframes glow-pulse {
+        0% {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: scale(1);
+        }
+        50% {
+            box-shadow: 0 0 35px rgba(30, 136, 229, 0.7);
+            transform: scale(1.01);
+        }
+        100% {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: scale(1);
+        }
     }
     
-    /* Explanation box */
-    .explanation-box {
-        background-color: #1a1a1a;
-        padding: 1.5rem;
-        border-radius: 8px;
-        border-left: 4px solid #4caf50;
-        margin: 1rem 0;
-        font-family: 'Monaco', 'Courier New', monospace;
-        font-size: 0.95rem;
-        line-height: 1.6;
+    /* Status card states */
+    .status-card-idle {
+        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+        border-left: 4px solid #666;
     }
     
-    /* Action log */
-    .action-log {
-        background-color: #121212;
-        padding: 1rem;
+    .status-card-active {
+        background: linear-gradient(135deg, #1a3a5a 0%, #0d1f3a 100%);
+        border-left: 4px solid #1e88e5;
+    }
+    
+    .status-card-locked {
+        background: linear-gradient(135deg, #3a1a1a 0%, #2a0d0d 100%);
+        border-left: 4px solid #d32f2f;
+    }
+    
+    /* Status badge */
+    .status-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
         border-radius: 6px;
-        border: 1px solid #333;
-        max-height: 200px;
-        overflow-y: auto;
-        font-family: 'Monaco', 'Courier New', monospace;
         font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
-    /* Video frame container */
-    .video-container {
-        background-color: #000000;
-        padding: 1rem;
-        border-radius: 10px;
-        border: 2px solid #1e88e5;
-        box-shadow: 0 4px 20px rgba(30, 136, 229, 0.2);
+    .badge-idle {
+        background-color: #424242;
+        color: #bdbdbd;
+    }
+    
+    .badge-active {
+        background-color: #1e88e5;
+        color: #ffffff;
+    }
+    
+    .badge-locked {
+        background-color: #d32f2f;
+        color: #ffffff;
+    }
+    
+    .badge-executed {
+        background-color: #4caf50;
+        color: #ffffff;
     }
     
     /* Confidence bar */
-    .confidence-bar {
-        height: 30px;
-        background: linear-gradient(90deg, #d32f2f 0%, #ffc107 50%, #4caf50 100%);
-        border-radius: 15px;
-        overflow: hidden;
+    .confidence-container {
+        background-color: #1a1a1a;
+        padding: 1rem;
+        border-radius: 8px;
         margin: 0.5rem 0;
     }
     
-    /* Gesture label */
-    .gesture-label {
-        font-size: 2.5rem;
-        font-weight: 800;
-        text-align: center;
-        padding: 1rem;
-        background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
-        border-radius: 10px;
-        color: white;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin: 1rem 0;
+    .confidence-bar-bg {
+        background-color: #2a2a2a;
+        height: 24px;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
     }
     
-    /* No gesture detected */
-    .no-gesture {
-        font-size: 1.8rem;
-        text-align: center;
-        padding: 1rem;
+    .confidence-bar-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #ffffff;
+    }
+    
+    /* Action timeline */
+    .timeline-item {
         background-color: #1a1a1a;
-        border-radius: 10px;
-        color: #757575;
-        font-style: italic;
+        padding: 0.75rem;
+        border-radius: 6px;
+        border-left: 3px solid #1e88e5;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .timeline-time {
+        color: #1e88e5;
+        font-weight: 600;
+        font-family: monospace;
+    }
+    
+    .timeline-action {
+        color: #ffffff;
+        font-weight: 500;
+    }
+    
+    .timeline-gesture {
+        color: #9e9e9e;
+        font-size: 0.8rem;
+    }
+    
+    /* Model health metrics */
+    .health-metric {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #2a2a2a;
+    }
+    
+    .health-metric:last-child {
+        border-bottom: none;
+    }
+    
+    .health-label {
+        color: #9e9e9e;
+        font-size: 0.85rem;
+    }
+    
+    .health-value {
+        color: #4caf50;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    /* Clean label styling */
+    .section-label {
+        color: #b0b0b0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
     }
     
     /* Hide Streamlit branding */
@@ -176,7 +261,7 @@ DARK_THEME_CSS = """
 </style>
 """
 
-st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
+st.markdown(PREMIUM_CSS, unsafe_allow_html=True)
 
 # ============================================================================
 # SESSION STATE INITIALIZATION
@@ -193,12 +278,15 @@ def init_session_state():
         st.session_state.classifier = None
         st.session_state.decision_engine = None
         st.session_state.logger = None
+        st.session_state.confidence_threshold = CONF_THRESHOLD
         st.session_state.last_gesture = "None"
         st.session_state.last_confidence = 0.0
-        st.session_state.last_action = "None"
+        st.session_state.last_action = "No Action"
         st.session_state.last_explanation = "System starting..."
         st.session_state.action_history = []
         st.session_state.frame_count = 0
+        st.session_state.start_time = time.time()
+        st.session_state.action_triggered = False  # For animation trigger
 
 # ============================================================================
 # SYSTEM INITIALIZATION
@@ -236,8 +324,15 @@ def initialize_system():
         model_path = 'data/trained_models/gesture_model.pkl'
         st.session_state.classifier = load_gesture_model(model_path)
         
-        # Initialize decision engine
-        st.session_state.decision_engine = DecisionEngine(cooldown_seconds=1.0)
+        # Initialize decision engine with updated thresholds for all available gestures
+        custom_thresholds = {
+            gesture: st.session_state.confidence_threshold 
+            for gesture in GESTURE_ACTION_MAP.keys()
+        }
+        st.session_state.decision_engine = DecisionEngine(
+            confidence_thresholds=custom_thresholds,
+            cooldown_seconds=1.0
+        )
         
         # Initialize explainability logger
         st.session_state.logger = ExplainabilityLogger()
@@ -245,19 +340,32 @@ def initialize_system():
         # Initialize webcam
         st.session_state.webcam = WebcamStream(camera_index=0, width=640, height=480)
         if not st.session_state.webcam.start():
-            st.error("❌ Failed to open webcam. Please check camera permissions.")
+            st.error("Failed to open webcam. Please check camera permissions.")
             return False
         
         st.session_state.initialized = True
+        st.session_state.start_time = time.time()
         return True
         
     except Exception as e:
-        st.error(f"❌ System initialization failed: {str(e)}")
+        st.error(f"System initialization failed: {str(e)}")
         return False
 
 # ============================================================================
 # GESTURE PROCESSING
 # ============================================================================
+
+def get_action_for_gesture(gesture: str) -> str:
+    """
+    Map gesture to action name.
+    
+    Args:
+        gesture: Predicted gesture name
+        
+    Returns:
+        Human-readable action name
+    """
+    return GESTURE_ACTION_MAP.get(gesture, 'No Action')
 
 def process_frame(frame: np.ndarray) -> Dict:
     """
@@ -267,7 +375,8 @@ def process_frame(frame: np.ndarray) -> Dict:
         - frame_with_landmarks: Video frame with overlaid landmarks
         - gesture: Predicted gesture name
         - confidence: Prediction confidence
-        - action: System action taken
+        - action: System action name (human-readable)
+        - action_executed: Boolean if action was executed
         - explanation: Human-readable explanation
         - system_state: Current system state
     """
@@ -275,7 +384,8 @@ def process_frame(frame: np.ndarray) -> Dict:
         'frame_with_landmarks': frame,
         'gesture': None,
         'confidence': 0.0,
-        'action': SystemAction.NO_ACTION,
+        'action': 'No Action',
+        'action_executed': False,
         'explanation': 'No hand detected',
         'system_state': st.session_state.decision_engine.get_state()
     }
@@ -312,177 +422,236 @@ def process_frame(frame: np.ndarray) -> Dict:
     result['gesture'] = prediction['gesture']
     result['confidence'] = prediction['confidence']
     
-    # Make decision
-    action, reason = st.session_state.decision_engine.decide_action(
-        predicted_gesture=prediction['gesture'],
-        confidence=prediction['confidence']
-    )
-    result['action'] = action
-    result['explanation'] = reason
+    # Check if confidence meets threshold for action execution
+    action_executed = prediction['confidence'] >= st.session_state.confidence_threshold
     
-    # Log decision
-    st.session_state.logger.log_decision(
-        gesture=prediction['gesture'],
-        confidence=prediction['confidence'],
-        threshold=st.session_state.decision_engine.get_confidence_threshold(prediction['gesture']),
-        system_state=result['system_state'].value,
-        action=action.value,
-        executed=(action != SystemAction.NO_ACTION),
-        reason=reason
-    )
+    # Get action name for this gesture
+    action_name = get_action_for_gesture(prediction['gesture'])
+    result['action'] = action_name
+    result['action_executed'] = action_executed
+    
+    # Build explanation
+    if action_executed:
+        result['explanation'] = f"{prediction['gesture'].replace('_', ' ').title()} detected with {prediction['confidence']:.1%} confidence. Action: {action_name}"
+    else:
+        result['explanation'] = f"{prediction['gesture'].replace('_', ' ').title()} detected but confidence {prediction['confidence']:.1%} below threshold {st.session_state.confidence_threshold:.1%}"
     
     # Update session state
     st.session_state.last_gesture = prediction['gesture']
     st.session_state.last_confidence = prediction['confidence']
-    st.session_state.last_action = action.value
-    st.session_state.last_explanation = reason
+    st.session_state.last_action = action_name
+    st.session_state.last_explanation = result['explanation']
     
     # Add to action history if executed
-    if action != SystemAction.NO_ACTION:
+    if action_executed and action_name != 'No Action':
         timestamp = time.strftime('%H:%M:%S')
         st.session_state.action_history.append({
             'time': timestamp,
             'gesture': prediction['gesture'],
-            'action': action.value,
+            'action': action_name,
             'confidence': prediction['confidence']
         })
         # Keep only last 10 actions
         if len(st.session_state.action_history) > 10:
             st.session_state.action_history.pop(0)
+        
+        # Trigger animation
+        st.session_state.action_triggered = True
     
     return result
 
 # ============================================================================
-# UI COMPONENTS
+# UI COMPONENTS - MODULAR FUNCTIONS
 # ============================================================================
 
 def render_header():
     """Render the application header."""
-    st.markdown("# 🖐️ GestureForge")
-    st.markdown("### Real-Time Gesture Control System")
-    st.markdown("---")
-
-def render_system_state(state: SystemState):
-    """Render the current system state with visual styling."""
-    state_map = {
-        SystemState.IDLE: ("⏸️", "IDLE", "System ready - Use open palm to activate", "status-idle"),
-        SystemState.ACTIVE: ("✅", "ACTIVE", "System processing gestures", "status-active"),
-        SystemState.LOCKED: ("🔒", "LOCKED", "System locked - Use open palm to unlock", "status-locked")
-    }
+    st.markdown("# GestureForge")
+    st.markdown("### Premium Gesture Recognition Platform")
     
-    icon, label, description, css_class = state_map[state]
+    # Confidence threshold slider
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        new_threshold = st.slider(
+            "Confidence Threshold",
+            min_value=0.50,
+            max_value=0.95,
+            value=st.session_state.confidence_threshold,
+            step=0.05,
+            help="Minimum confidence required to execute actions"
+        )
+        if new_threshold != st.session_state.confidence_threshold:
+            st.session_state.confidence_threshold = new_threshold
+            # Update decision engine thresholds if initialized
+            if st.session_state.decision_engine:
+                for gesture in GESTURE_ACTION_MAP.keys():
+                    if gesture in st.session_state.decision_engine.confidence_thresholds:
+                        st.session_state.decision_engine.set_confidence_threshold(gesture, new_threshold)
+    
+    with col2:
+        st.metric("Current", f"{st.session_state.confidence_threshold:.0%}")
+
+def render_camera_panel(video_placeholder):
+    """Render the camera feed panel."""
+    st.markdown('<div class="section-label">Camera Feed</div>', unsafe_allow_html=True)
+    return video_placeholder
+
+def render_status_card(state: SystemState, gesture: Optional[str], confidence: float, action: str, action_executed: bool):
+    """Render the status card with system information."""
+    # Determine status styling
+    if state == SystemState.IDLE:
+        state_class = "status-card-idle"
+        badge_class = "badge-idle"
+        state_label = "IDLE"
+    elif state == SystemState.ACTIVE:
+        state_class = "status-card-active"
+        badge_class = "badge-active"
+        state_label = "ACTIVE"
+    else:
+        state_class = "status-card-locked"
+        badge_class = "badge-locked"
+        state_label = "LOCKED"
+    
+    # Add glow animation if action just triggered
+    glow_class = " action-glow" if st.session_state.action_triggered else ""
     
     st.markdown(f"""
-    <div class="{css_class}">
-        <h2 style="margin:0; color: white;">{icon} System State: {label}</h2>
-        <p style="margin:0.5rem 0 0 0; font-size: 1.1rem; color: rgba(255,255,255,0.9);">
-            {description}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-def render_gesture_display(gesture: Optional[str], confidence: float):
-    """Render the detected gesture with confidence."""
-    if gesture and confidence > 0.0:
-        # Gesture detected
-        st.markdown(f"""
-        <div class="gesture-label">
-            {gesture.replace('_', ' ')}
+    <div class="premium-card {state_class}{glow_class}">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="section-label">System Status</div>
+            <span class="status-badge {badge_class}">{state_label}</span>
         </div>
-        """, unsafe_allow_html=True)
         
-        # Confidence bar
-        st.markdown("**Confidence Score**")
-        confidence_percent = int(confidence * 100)
-        color = "#4caf50" if confidence >= 0.75 else "#ffc107" if confidence >= 0.5 else "#d32f2f"
-        st.markdown(f"""
-        <div style="background-color: #1a1a1a; padding: 0.5rem; border-radius: 8px;">
-            <div style="background-color: #2a2a2a; height: 30px; border-radius: 15px; overflow: hidden;">
-                <div style="width: {confidence_percent}%; height: 100%; background-color: {color}; 
-                    display: flex; align-items: center; justify-content: center; color: white; 
-                    font-weight: bold; transition: width 0.3s ease;">
-                    {confidence:.2%}
+        <div style="margin-top: 1rem;">
+            <div class="section-label">Detected Gesture</div>
+            <div style="font-size: 1.3rem; font-weight: 600; color: #ffffff; margin: 0.5rem 0;">
+                {gesture.replace('_', ' ').title() if gesture else 'None'}
+            </div>
+        </div>
+        
+        <div style="margin-top: 1rem;">
+            <div class="section-label">Confidence</div>
+            <div style="font-size: 1.1rem; font-weight: 600; color: #1e88e5; margin: 0.5rem 0;">
+                {confidence:.1%}
+            </div>
+        </div>
+        
+        <div style="margin-top: 1rem;">
+            <div class="section-label">Action</div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0;">
+                <div style="font-size: 1.1rem; font-weight: 600; color: #ffffff;">
+                    {action}
                 </div>
+                {f'<span class="status-badge badge-executed">Executed</span>' if action_executed else ''}
             </div>
         </div>
-        """, unsafe_allow_html=True)
-    else:
-        # No gesture
-        st.markdown("""
-        <div class="no-gesture">
-            No Gesture Detected
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("**Confidence Score**")
-        st.markdown("""
-        <div style="background-color: #1a1a1a; padding: 0.5rem; border-radius: 8px;">
-            <div style="background-color: #2a2a2a; height: 30px; border-radius: 15px; 
-                display: flex; align-items: center; justify-content: center; color: #757575;">
-                0.00%
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-def render_action_display(action: SystemAction):
-    """Render the executed action."""
-    st.markdown("**Executed Action**")
+    </div>
+    """, unsafe_allow_html=True)
     
-    if action == SystemAction.NO_ACTION:
-        st.markdown("""
-        <div style="background-color: #1a1a1a; padding: 1rem; border-radius: 8px; 
-            text-align: center; color: #757575; font-style: italic;">
-            No action taken
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        action_label = action.value.replace('_', ' ').title()
-        st.markdown(f"""
-        <div style="background-color: #1a1a1a; padding: 1rem; border-radius: 8px; 
-            text-align: center; border-left: 4px solid #4caf50;">
-            <span style="font-size: 1.5rem; font-weight: 700; color: #4caf50;">
-                {action_label}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
+    # Reset animation trigger
+    if st.session_state.action_triggered:
+        st.session_state.action_triggered = False
 
-def render_explanation(explanation: str):
-    """Render the human-readable explanation."""
-    st.markdown("**System Intelligence**")
+def render_confidence_bar(confidence: float):
+    """Render a clean confidence bar."""
+    # Determine color based on confidence
+    if confidence >= 0.75:
+        color = "#4caf50"  # Green
+    elif confidence >= 0.50:
+        color = "#ffc107"  # Yellow
+    else:
+        color = "#d32f2f"  # Red
+    
     st.markdown(f"""
-    <div class="explanation-box">
-        {explanation}
+    <div class="confidence-container">
+        <div class="section-label">Confidence Level</div>
+        <div class="confidence-bar-bg">
+            <div class="confidence-bar-fill" style="width: {confidence*100}%; background-color: {color};">
+                {confidence:.1%}
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-def render_action_history():
-    """Render the action history log."""
-    st.markdown("**Action History**")
+def render_action_timeline():
+    """Render the action timeline card."""
+    st.markdown('<div class="section-label">Action Timeline</div>', unsafe_allow_html=True)
     
     if not st.session_state.action_history:
         st.markdown("""
-        <div class="action-log">
-            <span style="color: #757575; font-style: italic;">No actions executed yet</span>
+        <div class="premium-card">
+            <div style="text-align: center; color: #666; font-style: italic; padding: 1rem;">
+                No actions executed yet
+            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
-        log_html = '<div class="action-log">'
+        timeline_html = '<div class="premium-card" style="max-height: 300px; overflow-y: auto;">'
         for item in reversed(st.session_state.action_history):
-            action_name = item['action'].replace('_', ' ').title()
-            gesture_name = item['gesture'].replace('_', ' ').title()
-            log_html += f"""
-            <div style="margin-bottom: 0.5rem; padding: 0.5rem; background-color: #1a1a1a; 
-                border-radius: 4px; border-left: 3px solid #1e88e5;">
-                <span style="color: #4caf50;">✓</span> 
-                <span style="color: #1e88e5;">[{item['time']}]</span> 
-                <span style="color: #ffffff; font-weight: 600;">{action_name}</span>
-                <br/>
-                <span style="color: #9e9e9e; font-size: 0.9rem; margin-left: 1.5rem;">
-                    Gesture: {gesture_name} | Confidence: {item['confidence']:.2%}
-                </span>
+            gesture_display = item['gesture'].replace('_', ' ').title()
+            timeline_html += f"""
+            <div class="timeline-item">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="timeline-time">{item['time']}</span>
+                    <span style="color: #9e9e9e; font-size: 0.75rem;">{item['confidence']:.0%}</span>
+                </div>
+                <div class="timeline-action">{item['action']}</div>
+                <div class="timeline-gesture">Gesture: {gesture_display}</div>
             </div>
             """
-        log_html += '</div>'
-        st.markdown(log_html, unsafe_allow_html=True)
+        timeline_html += '</div>'
+        st.markdown(timeline_html, unsafe_allow_html=True)
+
+def render_model_health():
+    """Render model health metrics."""
+    st.markdown('<div class="section-label">Model Health</div>', unsafe_allow_html=True)
+    
+    # Calculate metrics
+    elapsed_time = time.time() - st.session_state.start_time
+    fps = st.session_state.frame_count / elapsed_time if elapsed_time > 0 else 0
+    avg_latency = (elapsed_time / st.session_state.frame_count * 1000) if st.session_state.frame_count > 0 else 0
+    
+    st.markdown(f"""
+    <div class="premium-card">
+        <div class="health-metric">
+            <span class="health-label">FPS</span>
+            <span class="health-value">{fps:.1f}</span>
+        </div>
+        <div class="health-metric">
+            <span class="health-label">Avg Latency</span>
+            <span class="health-value">{avg_latency:.1f}ms</span>
+        </div>
+        <div class="health-metric">
+            <span class="health-label">Frames Processed</span>
+            <span class="health-value">{st.session_state.frame_count}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def render_intelligence_panel(result: Dict):
+    """Render the complete intelligence panel."""
+    # Status card
+    render_status_card(
+        result['system_state'],
+        result['gesture'],
+        result['confidence'],
+        result['action'],
+        result['action_executed']
+    )
+    
+    # Confidence bar
+    if result['gesture']:
+        render_confidence_bar(result['confidence'])
+    
+    # Action timeline
+    render_action_timeline()
+    
+    # Model health
+    render_model_health()
+
+def update_action_log(gesture: str, action: str, confidence: float):
+    """Update the action log (already handled in process_frame)."""
+    pass  # Functionality integrated into process_frame
 
 # ============================================================================
 # MAIN APPLICATION
@@ -495,6 +664,8 @@ def main():
     # Render header
     render_header()
     
+    st.markdown("---")
+    
     # Initialize system
     if not initialize_system():
         st.error("System initialization failed. Please check the logs above.")
@@ -505,37 +676,31 @@ def main():
     
     # Left column: Video feed
     with col1:
-        st.markdown("### 📹 Camera Feed")
         video_placeholder = st.empty()
     
     # Right column: System intelligence
     with col2:
-        st.markdown("### 🧠 System Intelligence")
-        state_placeholder = st.empty()
-        gesture_placeholder = st.empty()
-        action_placeholder = st.empty()
-        explanation_placeholder = st.empty()
-        history_placeholder = st.empty()
-    
-    # Main processing loop
-    st.markdown("---")
+        intelligence_placeholder = st.empty()
     
     # Control buttons
+    st.markdown("---")
     col_start, col_stop = st.columns(2)
     with col_start:
-        if st.button("▶️ Start System", disabled=st.session_state.running):
+        if st.button("Start System", disabled=st.session_state.running, use_container_width=True):
             st.session_state.running = True
+            st.session_state.start_time = time.time()
+            st.session_state.frame_count = 0
             st.rerun()
     with col_stop:
-        if st.button("⏹️ Stop System", disabled=not st.session_state.running):
+        if st.button("Stop System", disabled=not st.session_state.running, use_container_width=True):
             st.session_state.running = False
             st.rerun()
     
     # Process frames in a bounded loop if running
     if st.session_state.running:
         try:
-            # Bounded loop to prevent infinite reruns (max 200 frames)
-            for i in range(200):
+            # Bounded loop to prevent infinite reruns
+            for i in range(MAX_FRAMES_PER_CYCLE):
                 # Check if stop was requested
                 if not st.session_state.running:
                     break
@@ -558,21 +723,13 @@ def main():
                     use_container_width=True
                 )
                 
-                # Update system intelligence display
-                with state_placeholder.container():
-                    render_system_state(result['system_state'])
+                # Show toast notification if action executed
+                if result['action_executed'] and result['action'] != 'No Action':
+                    st.toast(f"Action Executed: {result['action']}", icon="✅")
                 
-                with gesture_placeholder.container():
-                    render_gesture_display(result['gesture'], result['confidence'])
-                
-                with action_placeholder.container():
-                    render_action_display(result['action'])
-                
-                with explanation_placeholder.container():
-                    render_explanation(result['explanation'])
-                
-                with history_placeholder.container():
-                    render_action_history()
+                # Update intelligence panel
+                with intelligence_placeholder.container():
+                    render_intelligence_panel(result)
                 
                 # Small sleep to control frame rate (~30 fps)
                 time.sleep(0.03)
@@ -585,20 +742,31 @@ def main():
             st.error(f"Error during processing: {str(e)}")
             st.session_state.running = False
     else:
-        st.info("Press 'Start System' to begin gesture recognition")
-        st.markdown("""
-        **Instructions:**
-        1. Click 'Start System' to activate webcam
-        2. Show gestures to control system
-        3. Click 'Stop System' to end session
+        # Show instructions when not running
+        with col1:
+            st.info("""
+            **Instructions:**
+            1. Click 'Start System' to activate webcam
+            2. Show gestures to control system
+            3. Click 'Stop System' to end session
+            """)
         
-        **Gestures:**
-        - **Open Palm**: Activate/unlock system
-        - **Pinch**: Increase threshold
-        - **Swipe**: Scroll up
-        - **Fist**: Lock system
-        - **Rotate**: Rotate view
-        """)
+        with col2:
+            st.markdown('<div class="section-label">Gesture Actions</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="premium-card">
+            """, unsafe_allow_html=True)
+            
+            for gesture, action in GESTURE_ACTION_MAP.items():
+                gesture_display = gesture.replace('_', ' ').title()
+                st.markdown(f"""
+                <div class="health-metric">
+                    <span class="health-label">{gesture_display}</span>
+                    <span class="health-value" style="color: #1e88e5;">{action}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
