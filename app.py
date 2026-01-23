@@ -35,12 +35,14 @@ from decision_engine import DecisionEngine, ExplainabilityLogger, SystemAction, 
 CONF_THRESHOLD = 0.65
 
 # Gesture to action mapping
+# Note: Maps available gestures to actions
+# Available gestures from model: open_palm, fist, pinch, swipe, rotate
 GESTURE_ACTION_MAP = {
     'open_palm': 'Activate System',
     'fist': 'Lock / Pause',
-    'peace': 'Next Mode',
-    'thumbs_up': 'Confirm / Execute',
-    'thumbs_down': 'Cancel',
+    'pinch': 'Confirm / Execute',  # Using pinch instead of thumbs_up
+    'swipe': 'Next Mode',  # Using swipe instead of peace
+    'rotate': 'Cancel',  # Using rotate instead of thumbs_down
 }
 
 # ============================================================================

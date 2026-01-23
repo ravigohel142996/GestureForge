@@ -814,9 +814,9 @@ The GestureForge system uses a confidence-based action execution model to ensure
 2. **Gesture-to-Action Mapping**
    - **Open Palm** → Activate System
    - **Fist** → Lock / Pause
-   - **Peace** → Next Mode
-   - **Thumbs Up** → Confirm / Execute
-   - **Thumbs Down** → Cancel
+   - **Pinch** → Confirm / Execute
+   - **Swipe** → Next Mode
+   - **Rotate** → Cancel
    - Unknown gestures → No Action
 
 3. **Action Execution Indicators**
