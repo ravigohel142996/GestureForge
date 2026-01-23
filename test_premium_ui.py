@@ -6,17 +6,11 @@ Tests core functionality without requiring webcam
 import numpy as np
 from ml import GestureClassifier
 
-# Test gesture action mapping
-GESTURE_ACTION_MAP = {
-    'open_palm': 'Activate System',
-    'fist': 'Lock / Pause',
-    'pinch': 'Confirm / Execute',
-    'swipe': 'Next Mode',
-    'rotate': 'Cancel',
-}
-
 def test_action_mapping():
     """Test that all gestures have action mappings"""
+    # Import from app to avoid duplication
+    from app import GESTURE_ACTION_MAP
+    
     print("Testing action mapping...")
     for gesture, action in GESTURE_ACTION_MAP.items():
         print(f"  {gesture} → {action}")

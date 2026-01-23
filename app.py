@@ -35,14 +35,13 @@ from decision_engine import DecisionEngine, ExplainabilityLogger, SystemAction, 
 CONF_THRESHOLD = 0.65
 
 # Gesture to action mapping
-# Note: Maps available gestures to actions
-# Available gestures from model: open_palm, fist, pinch, swipe, rotate
+# Available gestures from trained model: open_palm, fist, pinch, swipe, rotate
 GESTURE_ACTION_MAP = {
     'open_palm': 'Activate System',
     'fist': 'Lock / Pause',
-    'pinch': 'Confirm / Execute',  # Using pinch instead of thumbs_up
-    'swipe': 'Next Mode',  # Using swipe instead of peace
-    'rotate': 'Cancel',  # Using rotate instead of thumbs_down
+    'pinch': 'Confirm / Execute',
+    'swipe': 'Next Mode',
+    'rotate': 'Cancel',
 }
 
 # ============================================================================
@@ -319,13 +318,10 @@ def initialize_system():
         model_path = 'data/trained_models/gesture_model.pkl'
         st.session_state.classifier = load_gesture_model(model_path)
         
-        # Initialize decision engine with updated thresholds
+        # Initialize decision engine with updated thresholds for all available gestures
         custom_thresholds = {
-            'open_palm': st.session_state.confidence_threshold,
-            'fist': st.session_state.confidence_threshold,
-            'peace': st.session_state.confidence_threshold,
-            'thumbs_up': st.session_state.confidence_threshold,
-            'thumbs_down': st.session_state.confidence_threshold,
+            gesture: st.session_state.confidence_threshold 
+            for gesture in GESTURE_ACTION_MAP.keys()
         }
         st.session_state.decision_engine = DecisionEngine(
             confidence_thresholds=custom_thresholds,
@@ -483,7 +479,8 @@ def render_header():
             # Update decision engine thresholds if initialized
             if st.session_state.decision_engine:
                 for gesture in GESTURE_ACTION_MAP.keys():
-                    st.session_state.decision_engine.set_confidence_threshold(gesture, new_threshold)
+                    if st.session_state.decision_engine.confidence_thresholds.get(gesture) is not None:
+                        st.session_state.decision_engine.set_confidence_threshold(gesture, new_threshold)
     
     with col2:
         st.metric("Current", f"{st.session_state.confidence_threshold:.0%}")
