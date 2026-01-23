@@ -697,6 +697,8 @@ Run the real-time gesture control UI:
 streamlit run app.py
 ```
 
+**Note:** Start/Stop uses session_state to avoid rerun flicker. The UI implements bounded frame loops instead of continuous reruns to prevent screen blinking.
+
 The app will:
 1. Load the trained gesture model
 2. Initialize webcam (requires camera permission)
