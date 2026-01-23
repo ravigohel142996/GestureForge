@@ -34,6 +34,12 @@ from decision_engine import DecisionEngine, ExplainabilityLogger, SystemAction, 
 # Confidence threshold for action execution
 CONF_THRESHOLD = 0.65
 
+# Maximum frames to process per cycle (prevents browser hang)
+MAX_FRAMES_PER_CYCLE = 100
+
+# Landmark feature dimension (21 landmarks × 3 coordinates)
+LANDMARK_FEATURE_DIM = 63
+
 # Gesture to action mapping
 # Available gestures from trained model: open_palm, fist, pinch, swipe, rotate
 GESTURE_ACTION_MAP = {
@@ -479,7 +485,7 @@ def render_header():
             # Update decision engine thresholds if initialized
             if st.session_state.decision_engine:
                 for gesture in GESTURE_ACTION_MAP.keys():
-                    if st.session_state.decision_engine.confidence_thresholds.get(gesture) is not None:
+                    if gesture in st.session_state.decision_engine.confidence_thresholds:
                         st.session_state.decision_engine.set_confidence_threshold(gesture, new_threshold)
     
     with col2:
@@ -693,8 +699,8 @@ def main():
     # Process frames in a bounded loop if running
     if st.session_state.running:
         try:
-            # Bounded loop to prevent infinite reruns (max 100 frames per cycle)
-            for i in range(100):
+            # Bounded loop to prevent infinite reruns
+            for i in range(MAX_FRAMES_PER_CYCLE):
                 # Check if stop was requested
                 if not st.session_state.running:
                     break

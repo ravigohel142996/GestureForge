@@ -39,12 +39,15 @@ def test_model_loading():
     """Test that model can be loaded"""
     print("Testing model loading...")
     try:
+        # Import landmark dimension constant
+        from app import LANDMARK_FEATURE_DIM
+        
         clf = GestureClassifier()
         clf.load_model('data/trained_models/gesture_model.pkl')
         print(f"  Model loaded successfully")
         
         # Test prediction with random data
-        landmarks = np.random.randn(63) * 0.1
+        landmarks = np.random.randn(LANDMARK_FEATURE_DIM) * 0.1
         result = clf.predict_gesture(landmarks)
         
         print(f"  Test prediction: {result['gesture']} (confidence: {result['confidence']:.2f})")

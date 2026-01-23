@@ -44,7 +44,7 @@ def test_action_mapping_coverage():
     
     # Get model gestures
     import numpy as np
-    test_landmarks = np.random.randn(63) * 0.1
+    test_landmarks = np.random.randn(app.LANDMARK_FEATURE_DIM) * 0.1
     result = clf.predict_gesture(test_landmarks)
     model_gestures = list(result['all_probabilities'].keys())
     
