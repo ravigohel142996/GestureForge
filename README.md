@@ -799,3 +799,55 @@ All 5 steps delivered:
 - Webcam (for real-time UI)
 
 See `requirements.txt` for full dependency list.
+
+## How Gesture Actions Are Triggered
+
+### Action Execution Logic
+
+The GestureForge system uses a confidence-based action execution model to ensure reliable and intentional gesture control:
+
+1. **Confidence Threshold** (Default: 0.65)
+   - Actions are only executed when the ML model's confidence in the gesture prediction meets or exceeds the threshold
+   - The threshold can be adjusted via the UI slider (range: 0.50 to 0.95)
+   - Lower thresholds = more sensitive, higher thresholds = more selective
+
+2. **Gesture-to-Action Mapping**
+   - **Open Palm** → Activate System
+   - **Fist** → Lock / Pause
+   - **Peace** → Next Mode
+   - **Thumbs Up** → Confirm / Execute
+   - **Thumbs Down** → Cancel
+   - Unknown gestures → No Action
+
+3. **Action Execution Indicators**
+   - When an action is executed:
+     - "Action Executed" badge appears in the UI
+     - Toast notification displays: "Action Executed: [Action Name]"
+     - Action is logged in the Action Timeline with timestamp
+     - Right panel briefly glows (600ms subtle animation)
+
+4. **Action Timeline**
+   - Displays the last 10 executed actions
+   - Each entry shows: timestamp, action name, gesture used, and confidence level
+   - Helps users understand system behavior and track interaction history
+
+5. **Safety Features**
+   - Only gestures meeting the confidence threshold trigger actions
+   - Low-confidence predictions are detected but not executed
+   - Prevents accidental actions from ambiguous hand positions
+
+### Example Flow
+
+```
+User shows "thumbs up" gesture
+  ↓
+Camera captures frame
+  ↓
+ML model predicts: gesture="thumbs_up", confidence=0.82
+  ↓
+Check: 0.82 >= 0.65 (threshold) ✓
+  ↓
+Execute: "Confirm / Execute" action
+  ↓
+Display: Toast notification + Timeline entry + Glow animation
+```
