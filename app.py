@@ -525,59 +525,61 @@ def main():
     with col_start:
         if st.button("▶️ Start System", disabled=st.session_state.running):
             st.session_state.running = True
+            st.rerun()
     with col_stop:
         if st.button("⏹️ Stop System", disabled=not st.session_state.running):
             st.session_state.running = False
-            # Cleanup
-            if st.session_state.webcam:
-                st.session_state.webcam.release()
-            if st.session_state.hand_detector:
-                st.session_state.hand_detector.release()
-            cv2.destroyAllWindows()
-            st.success("✅ System stopped successfully")
-            st.stop()
+            st.rerun()
     
-    # Process single frame if running
+    # Process frames in a bounded loop if running
     if st.session_state.running:
         try:
-            # Read frame
-            success, frame = st.session_state.webcam.read_frame()
-            if not success:
-                st.error("Failed to read from webcam")
-                st.session_state.running = False
-                st.stop()
-            
-            # Process frame
-            result = process_frame(frame)
-            st.session_state.frame_count += 1
-            
-            # Update video display
-            with video_placeholder.container():
-                st.image(
+            # Bounded loop to prevent infinite reruns (max 200 frames)
+            for i in range(200):
+                # Check if stop was requested
+                if not st.session_state.running:
+                    break
+                
+                # Read frame
+                success, frame = st.session_state.webcam.read_frame()
+                if not success:
+                    st.error("Failed to read from webcam")
+                    st.session_state.running = False
+                    break
+                
+                # Process frame
+                result = process_frame(frame)
+                st.session_state.frame_count += 1
+                
+                # Update video display
+                video_placeholder.image(
                     result['frame_with_landmarks'],
                     channels="BGR",
-                    use_column_width=True
+                    use_container_width=True
                 )
+                
+                # Update system intelligence display
+                with state_placeholder.container():
+                    render_system_state(result['system_state'])
+                
+                with gesture_placeholder.container():
+                    render_gesture_display(result['gesture'], result['confidence'])
+                
+                with action_placeholder.container():
+                    render_action_display(result['action'])
+                
+                with explanation_placeholder.container():
+                    render_explanation(result['explanation'])
+                
+                with history_placeholder.container():
+                    render_action_history()
+                
+                # Small sleep to control frame rate (~30 fps)
+                time.sleep(0.03)
             
-            # Update system intelligence display
-            with state_placeholder.container():
-                render_system_state(result['system_state'])
-            
-            with gesture_placeholder.container():
-                render_gesture_display(result['gesture'], result['confidence'])
-            
-            with action_placeholder.container():
-                render_action_display(result['action'])
-            
-            with explanation_placeholder.container():
-                render_explanation(result['explanation'])
-            
-            with history_placeholder.container():
-                render_action_history()
-            
-            # Auto-rerun for continuous processing
-            time.sleep(0.033)  # ~30 fps
-            st.rerun()
+            # After bounded loop completes, trigger rerun to continue if still running
+            if st.session_state.running:
+                st.rerun()
         
         except Exception as e:
             st.error(f"Error during processing: {str(e)}")
